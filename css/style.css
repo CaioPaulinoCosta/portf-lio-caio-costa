@@ -750,6 +750,25 @@ section {
   display: none;
 }
 
+.success-message {
+  background: #d4edda;
+  color: #155724;
+  padding: 1rem;
+  border-radius: 5px;
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.success-message i {
+  font-size: 1.2rem;
+}
+
+.hidden {
+  display: none !important;
+}
+
 /* Footer */
 .footer {
   background-color: var(--dark-color);
