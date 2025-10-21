@@ -27,98 +27,116 @@ window.addEventListener("scroll", () => {
   }
 });
 
-// Formulário de contato
-const contactForm = document.getElementById("contactForm");
-const submitBtn = document.getElementById("submitBtn");
-const successMessage = document.getElementById("successMessage");
+// Sistema de notificações
+class NotificationSystem {
+  constructor() {
+    this.container = document.getElementById("notificationContainer");
+    if (!this.container) {
+      this.createContainer();
+    }
+  }
 
-if (contactForm) {
-  contactForm.addEventListener("submit", function (e) {
-    e.preventDefault();
+  createContainer() {
+    this.container = document.createElement("div");
+    this.container.id = "notificationContainer";
+    this.container.className = "notification-container";
+    document.body.appendChild(this.container);
+  }
 
-    const formData = new FormData(this);
-    const originalText = submitBtn.textContent;
+  show({ title, message, type = "info", duration = 5000 }) {
+    const notification = document.createElement("div");
+    notification.className = `notification ${type}`;
 
-    // Mostrar loading
-    submitBtn.textContent = "Enviando...";
-    submitBtn.disabled = true;
+    const icons = {
+      success: "fas fa-check-circle",
+      error: "fas fa-exclamation-circle",
+      warning: "fas fa-exclamation-triangle",
+      info: "fas fa-info-circle",
+    };
 
-    // Enviar para Netlify
-    fetch("/", {
-      method: "POST",
-      body: formData,
-    })
-      .then((response) => {
-        if (response.ok) {
-          // Sucesso!
-          successMessage.classList.remove("hidden");
-          contactForm.reset();
+    notification.innerHTML = `
+            <i class="notification-icon ${icons[type]}"></i>
+            <div class="notification-content">
+                <div class="notification-title">${title}</div>
+                <div class="notification-message">${message}</div>
+            </div>
+            <button class="notification-close">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
 
-          // Esconder mensagem após 5 segundos
-          setTimeout(() => {
-            successMessage.classList.add("hidden");
-          }, 5000);
-        } else {
-          throw new Error("Erro no envio");
-        }
-      })
-      .catch((error) => {
-        alert(
-          "Erro ao enviar mensagem. Você pode me contatar diretamente em caiopaulinocostadev@outlook.com"
-        );
-        console.error("Error:", error);
-      })
-      .finally(() => {
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-      });
-  });
+    this.container.appendChild(notification);
+    setTimeout(() => notification.classList.add("show"), 100);
+
+    const closeBtn = notification.querySelector(".notification-close");
+    closeBtn.addEventListener("click", () => this.close(notification));
+
+    if (duration > 0) {
+      setTimeout(() => this.close(notification), duration);
+    }
+
+    return notification;
+  }
+
+  close(notification) {
+    notification.classList.remove("show");
+    notification.classList.add("hide");
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 300);
+  }
+
+  success(message, title = "Sucesso!") {
+    return this.show({ title, message, type: "success" });
+  }
+
+  error(message, title = "Erro!") {
+    return this.show({ title, message, type: "error" });
+  }
+
+  warning(message, title = "Atenção!") {
+    return this.show({ title, message, type: "warning" });
+  }
 }
 
-// Rate Limiting
+// Sistema de segurança
 const submissionAttempts = {
   count: 0,
   lastAttempt: 0,
-  resetTime: 5 * 60 * 1000, // 5 minutos
+  resetTime: 5 * 60 * 1000,
 };
 
 function checkRateLimit() {
   const now = Date.now();
-
   if (now - submissionAttempts.lastAttempt > submissionAttempts.resetTime) {
     submissionAttempts.count = 0;
   }
-
   if (submissionAttempts.count >= 5) {
     throw new Error("Muitas tentativas. Tente novamente em 5 minutos.");
   }
-
   submissionAttempts.count++;
   submissionAttempts.lastAttempt = now;
 }
 
-// Validação de Segurança
 function validateForm(formData) {
   const name = formData.get("name").trim();
   const email = formData.get("email").trim();
   const message = formData.get("message").trim();
 
-  // 1. Validação de comprimento
   if (name.length < 2 || name.length > 100) {
     throw new Error("Nome deve ter entre 2 e 100 caracteres");
   }
-
   if (message.length < 10 || message.length > 1000) {
     throw new Error("Mensagem deve ter entre 10 e 1000 caracteres");
   }
 
-  // 2. Validação de email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     throw new Error("Email inválido");
   }
 
-  // 3. Proteção contra XSS
   const xssPatterns = /<script|javascript:|onclick|onload|onerror/gi;
   if (xssPatterns.test(name) || xssPatterns.test(message)) {
     throw new Error("Conteúdo não permitido detectado");
@@ -127,17 +145,96 @@ function validateForm(formData) {
   return true;
 }
 
-// Event Listener Principal
-document
-  .getElementById("contactForm")
-  ?.addEventListener("submit", async function (e) {
+// Validação de campos em tempo real
+function setupFormValidation() {
+  const form = document.getElementById("contactForm");
+  if (!form) return;
+
+  const inputs = form.querySelectorAll("input, textarea");
+
+  inputs.forEach((input) => {
+    input.addEventListener("input", function () {
+      const formGroup = this.closest(".form-group");
+      formGroup.classList.remove("error", "success");
+      const existingError = formGroup.querySelector(".field-error");
+      if (existingError) existingError.remove();
+    });
+
+    input.addEventListener("blur", function () {
+      validateField(this);
+    });
+  });
+}
+
+function validateField(field) {
+  const formGroup = field.closest(".form-group");
+  const value = field.value.trim();
+
+  formGroup.classList.remove("error", "success");
+  const existingError = formGroup.querySelector(".field-error");
+  if (existingError) existingError.remove();
+
+  let isValid = true;
+  let errorMessage = "";
+
+  if (field.type === "text" && field.name === "name") {
+    if (value.length < 2)
+      errorMessage = "Nome deve ter pelo menos 2 caracteres";
+    else if (value.length > 100)
+      errorMessage = "Nome muito longo (máx. 100 caracteres)";
+  } else if (field.type === "email") {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) errorMessage = "Email inválido";
+  } else if (field.name === "message") {
+    if (value.length < 10)
+      errorMessage = "Mensagem muito curta (mín. 10 caracteres)";
+    else if (value.length > 1000)
+      errorMessage = "Mensagem muito longa (máx. 1000 caracteres)";
+  }
+
+  if (errorMessage) {
+    isValid = false;
+    formGroup.classList.add("error");
+    const errorElement = document.createElement("div");
+    errorElement.className = "field-error";
+    errorElement.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${errorMessage}`;
+    formGroup.appendChild(errorElement);
+  } else if (value !== "") {
+    formGroup.classList.add("success");
+  }
+}
+
+// Event listener principal
+function initializeFormHandler() {
+  const contactForm = document.getElementById("contactForm");
+  if (!contactForm) return;
+
+  // ✅ APENAS UM event listener!
+  contactForm.addEventListener("submit", async function (e) {
     e.preventDefault();
 
     const submitBtn = this.querySelector('button[type="submit"]');
     const originalText = submitBtn.textContent;
     const formData = new FormData(this);
 
-    // Loading
+    // Validar todos os campos antes do envio
+    let allValid = true;
+    const inputs = this.querySelectorAll("input, textarea");
+    inputs.forEach((input) => {
+      validateField(input);
+      if (input.closest(".form-group").classList.contains("error")) {
+        allValid = false;
+      }
+    });
+
+    if (!allValid) {
+      notify.error(
+        "Por favor, corrija os erros no formulário antes de enviar."
+      );
+      return;
+    }
+
+    // Loading state
     submitBtn.textContent = "Enviando...";
     submitBtn.disabled = true;
 
@@ -145,29 +242,57 @@ document
       checkRateLimit();
       validateForm(formData);
 
-      // Envio para Netlify
       const response = await fetch("/", {
         method: "POST",
         body: formData,
       });
 
       if (response.ok) {
-        alert("✅ Mensagem enviada com sucesso!");
+        notify.success(
+          "Mensagem enviada com sucesso! Entrarei em contato em breve.",
+          "Obrigado!"
+        );
         this.reset();
 
-        // Reset do contador de tentativas em sucesso
+        // Reset visual
+        this.querySelectorAll(".form-group").forEach((group) => {
+          group.classList.remove("success");
+        });
+
         submissionAttempts.count = 0;
       } else {
         throw new Error("Erro no servidor");
       }
     } catch (error) {
-      console.error("Erro de segurança:", error);
-      alert(`❌ ${error.message || "Erro ao enviar mensagem."}`);
+      console.error("Erro:", error);
+
+      if (error.message.includes("Muitas tentativas")) {
+        notify.warning(error.message, "Atenção");
+      } else if (
+        error.message.includes("Email inválido") ||
+        error.message.includes("deve ter")
+      ) {
+        notify.error(error.message, "Dados inválidos");
+      } else {
+        notify.error(
+          "Erro ao enviar mensagem. Você pode me contatar diretamente em caiopaulinocostadev@outlook.com",
+          "Erro de envio"
+        );
+      }
     } finally {
       submitBtn.textContent = originalText;
       submitBtn.disabled = false;
     }
   });
+}
+
+// Inicialização
+const notify = new NotificationSystem();
+
+document.addEventListener("DOMContentLoaded", function () {
+  setupFormValidation();
+  initializeFormHandler();
+});
 
 // Ativar animação das barras de habilidades quando a seção estiver visível
 const skillBars = document.querySelectorAll(".skill-progress");
