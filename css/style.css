@@ -766,7 +766,27 @@ section {
 }
 
 .hidden {
-  display: none !important;
+  display: none;
+}
+
+/* Estilo para o reCAPTCHA */
+.g-recaptcha {
+  margin: 1.5rem 0;
+  transform: scale(0.9);
+  transform-origin: left;
+}
+
+/* Loading state */
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Mensagens de erro */
+.error-message {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
 }
 
 /* Footer */

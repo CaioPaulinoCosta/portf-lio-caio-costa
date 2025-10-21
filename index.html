@@ -313,30 +313,30 @@
                 </div>
 
                 <!-- FORMULÁRIO NETLIFY -->
-                <form name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field" id="contactForm"
-                    netlify>
+                <form name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field"
+                    data-netlify-recaptcha="true" id="contactForm" netlify>
                     <input type="hidden" name="form-name" value="contact">
+
+                    <!-- Honeypot -->
                     <p class="hidden">
-                        <label>Não preencha este campo: <input name="bot-field"></label>
+                        <label>Não preencha: <input name="bot-field"></label>
                     </p>
 
+                    <!-- Campos -->
                     <div class="form-group">
-                        <input type="text" name="name" id="name" placeholder="Seu Nome" required>
+                        <input type="text" name="name" placeholder="Seu Nome" required>
                     </div>
                     <div class="form-group">
-                        <input type="email" name="email" id="email" placeholder="Seu Email" required>
+                        <input type="email" name="email" placeholder="Seu Email" required>
                     </div>
                     <div class="form-group">
-                        <textarea name="message" id="message" rows="5" placeholder="Sua Mensagem" required></textarea>
+                        <textarea name="message" rows="5" placeholder="Sua Mensagem" required></textarea>
                     </div>
 
-                    <button type="submit" class="btn btn-primary" id="submitBtn">Enviar Mensagem</button>
+                    <!-- reCAPTCHA -->
+                    <div data-netlify-recaptcha="true"></div>
 
-                    <!-- Mensagem de sucesso (inicialmente hidden) -->
-                    <div id="successMessage" class="success-message hidden">
-                        <i class="fas fa-check-circle"></i>
-                        <span>Mensagem enviada com sucesso! Entrarei em contato em breve.</span>
-                    </div>
+                    <button type="submit" class="btn btn-primary">Enviar Mensagem</button>
                 </form>
             </div>
         </div>

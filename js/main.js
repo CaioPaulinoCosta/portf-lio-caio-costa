@@ -75,6 +75,100 @@ if (contactForm) {
   });
 }
 
+// Rate Limiting
+const submissionAttempts = {
+  count: 0,
+  lastAttempt: 0,
+  resetTime: 5 * 60 * 1000, // 5 minutos
+};
+
+function checkRateLimit() {
+  const now = Date.now();
+
+  if (now - submissionAttempts.lastAttempt > submissionAttempts.resetTime) {
+    submissionAttempts.count = 0;
+  }
+
+  if (submissionAttempts.count >= 5) {
+    throw new Error("Muitas tentativas. Tente novamente em 5 minutos.");
+  }
+
+  submissionAttempts.count++;
+  submissionAttempts.lastAttempt = now;
+}
+
+// Validação de Segurança
+function validateForm(formData) {
+  const name = formData.get("name").trim();
+  const email = formData.get("email").trim();
+  const message = formData.get("message").trim();
+
+  // 1. Validação de comprimento
+  if (name.length < 2 || name.length > 100) {
+    throw new Error("Nome deve ter entre 2 e 100 caracteres");
+  }
+
+  if (message.length < 10 || message.length > 1000) {
+    throw new Error("Mensagem deve ter entre 10 e 1000 caracteres");
+  }
+
+  // 2. Validação de email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new Error("Email inválido");
+  }
+
+  // 3. Proteção contra XSS
+  const xssPatterns = /<script|javascript:|onclick|onload|onerror/gi;
+  if (xssPatterns.test(name) || xssPatterns.test(message)) {
+    throw new Error("Conteúdo não permitido detectado");
+  }
+
+  return true;
+}
+
+// Event Listener Principal
+document
+  .getElementById("contactForm")
+  ?.addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    const formData = new FormData(this);
+
+    // Loading
+    submitBtn.textContent = "Enviando...";
+    submitBtn.disabled = true;
+
+    try {
+      checkRateLimit();
+      validateForm(formData);
+
+      // Envio para Netlify
+      const response = await fetch("/", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        alert("✅ Mensagem enviada com sucesso!");
+        this.reset();
+
+        // Reset do contador de tentativas em sucesso
+        submissionAttempts.count = 0;
+      } else {
+        throw new Error("Erro no servidor");
+      }
+    } catch (error) {
+      console.error("Erro de segurança:", error);
+      alert(`❌ ${error.message || "Erro ao enviar mensagem."}`);
+    } finally {
+      submitBtn.textContent = originalText;
+      submitBtn.disabled = false;
+    }
+  });
+
 // Ativar animação das barras de habilidades quando a seção estiver visível
 const skillBars = document.querySelectorAll(".skill-progress");
 
