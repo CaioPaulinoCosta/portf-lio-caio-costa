@@ -225,34 +225,6 @@ class SecurityTester {
   }
 }
 
-// 🎯 COMO EXECUTAR OS TESTES:
-
-// Método 1: Botão na página (adicione isso temporariamente no HTML)
-function addTestButton() {
-  const testButton = document.createElement("button");
-  testButton.textContent = "🧪 Executar Testes de Segurança";
-  testButton.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #e74c3c;
-        color: white;
-        border: none;
-        padding: 10px 15px;
-        border-radius: 5px;
-        cursor: pointer;
-        z-index: 10000;
-        font-family: Arial, sans-serif;
-    `;
-
-  testButton.onclick = () => {
-    const tester = new SecurityTester();
-    tester.runAllTests();
-  };
-
-  document.body.appendChild(testButton);
-}
-
 // Método 2: Executar diretamente no console
 window.runSecurityTests = function () {
   const tester = new SecurityTester();
