@@ -150,14 +150,19 @@ function setupFormValidation() {
   const form = document.getElementById("contactForm");
   if (!form) return;
 
-  const inputs = form.querySelectorAll("input, textarea");
+  // 🔥 CORREÇÃO: Selecionar apenas inputs visíveis (não hidden)
+  const inputs = form.querySelectorAll(
+    ".form-group input, .form-group textarea"
+  );
 
   inputs.forEach((input) => {
     input.addEventListener("input", function () {
       const formGroup = this.closest(".form-group");
-      formGroup.classList.remove("error", "success");
-      const existingError = formGroup.querySelector(".field-error");
-      if (existingError) existingError.remove();
+      if (formGroup) {
+        formGroup.classList.remove("error", "success");
+        const existingError = formGroup.querySelector(".field-error");
+        if (existingError) existingError.remove();
+      }
     });
 
     input.addEventListener("blur", function () {
@@ -168,6 +173,12 @@ function setupFormValidation() {
 
 function validateField(field) {
   const formGroup = field.closest(".form-group");
+
+  // 🔥 CORREÇÃO: Verificar se formGroup existe
+  if (!formGroup) {
+    return; // Ignorar campos sem form-group (como bot-field)
+  }
+
   const value = field.value.trim();
 
   formGroup.classList.remove("error", "success");
@@ -209,7 +220,6 @@ function initializeFormHandler() {
   const contactForm = document.getElementById("contactForm");
   if (!contactForm) return;
 
-  // ✅ APENAS UM event listener!
   contactForm.addEventListener("submit", async function (e) {
     e.preventDefault();
 
@@ -217,12 +227,16 @@ function initializeFormHandler() {
     const originalText = submitBtn.textContent;
     const formData = new FormData(this);
 
-    // Validar todos os campos antes do envio
+    // 🔥 CORREÇÃO: Validar apenas campos visíveis
     let allValid = true;
-    const inputs = this.querySelectorAll("input, textarea");
+    const inputs = this.querySelectorAll(
+      ".form-group input, .form-group textarea"
+    );
+
     inputs.forEach((input) => {
       validateField(input);
-      if (input.closest(".form-group").classList.contains("error")) {
+      const formGroup = input.closest(".form-group");
+      if (formGroup && formGroup.classList.contains("error")) {
         allValid = false;
       }
     });
@@ -231,6 +245,13 @@ function initializeFormHandler() {
       notify.error(
         "Por favor, corrija os erros no formulário antes de enviar."
       );
+      return;
+    }
+
+    // 🔥 CORREÇÃO: Verificar reCAPTCHA
+    const recaptchaResponse = grecaptcha.getResponse();
+    if (!recaptchaResponse) {
+      notify.error("Por favor, complete o reCAPTCHA antes de enviar.");
       return;
     }
 
@@ -259,6 +280,11 @@ function initializeFormHandler() {
           group.classList.remove("success");
         });
 
+        // Reset reCAPTCHA
+        if (typeof grecaptcha !== "undefined") {
+          grecaptcha.reset();
+        }
+
         submissionAttempts.count = 0;
       } else {
         throw new Error("Erro no servidor");
@@ -278,6 +304,11 @@ function initializeFormHandler() {
           "Erro ao enviar mensagem. Você pode me contatar diretamente em caiopaulinocostadev@outlook.com",
           "Erro de envio"
         );
+      }
+
+      // Reset reCAPTCHA em caso de erro
+      if (typeof grecaptcha !== "undefined") {
+        grecaptcha.reset();
       }
     } finally {
       submitBtn.textContent = originalText;
